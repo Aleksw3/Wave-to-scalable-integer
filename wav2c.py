@@ -4,6 +4,7 @@ import os
 import codecs
 import binascii
 from bitstring import BitArray
+import numpy as np
 
 # get hex data
 def wav2hex(filename:str, bit_range:int):
@@ -28,27 +29,34 @@ def wav2hex(filename:str, bit_range:int):
 	## Remove metadata
 	header = data[:44]
 	data = data[44:]
+	sample_rate, BitsPerSample = metadata(header)
+	BitsPerSample = BitsPerSample[1]/BitsPerSample[0] 
+
 	data_temp = []
 	for i, byte in enumerate(data):
-		if i > len(data) - len(data)*0.005:
+		if i > len(data) - len(data)*0.005: #Last couple of samples seems to be noise or potentially a footer
 			break
 		if (i+1) % 2 == 0:
-			data_temp.append(BitArray(hex = byte[::1]).int/127)
-	data = data_temp2
+			data_temp.append(BitArray(hex = byte[::1]).int/((2**(BitsPerSample-1))-1))
+
+	data = data_temp
 
 	if "sample_data.txt" in os.listdir():
 		mode = input("sample_data.txt exists, append or overwrite file? [a/o]")
-		mode = "a" if "a" in a else "w+"
+		mode = "a" if "a" in mode else "w+"
 	f = open("sample_data.txt",mode)
 
-	data_string = f"struct {filename} = {{{len(data_temp)},{{"
+	test = []
+	data_string = f"\nstruct {filename} = {{{len(data_temp)}, {sample_rate[0]},{{"
 	for sample in data_temp:
-		data_string += str(int((sample*(2**(bit_range-1)-1))+(2**bit_range-1))) + ","
+		test.append(int(sample*(2**(bit_range-1)-1)+(2**(bit_range-1))))
+		data_string += str(int(sample*(2**(bit_range-1)-1)+(2**(bit_range-1)))) + ","
 
+	print(max(test))
 	data_string = data_string[:-1] + "}};"
 	f.write(data_string)
 	f.close()
-	return data_string, header
+	return data_string
 
 def metadata(header):
 	'''
@@ -93,13 +101,14 @@ def metadata(header):
 		elif (curr_ins == "BitsPerSample"):
 			head_temp[curr_ins] = [int("".join(curr_data[0:2][::-1]),16),int("".join(curr_data[2:4][::-1]),16)]
 	print(head_temp)
+	return head_temp["sample_rate"], head_temp["BitsPerSample"]
 
 
 
 if __name__  == "__main__":
 	file = input("Give me a .wav file \n")
 	bit_range = int(input("Bit range of output? [8,16,...] ex: 8 bit(0 - 255) \n"))
-	data_string, header = wav2hex(file, bit_range) # header is a hex string array
+	data_string = wav2hex(file, bit_range) # header is a hex string array
 	print("Converted and written to data_sample.txt")
 
 
