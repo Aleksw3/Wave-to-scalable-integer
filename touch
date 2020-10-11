@@ -1,0 +1,12 @@
+
+Find sounds here: [Website to download sounds](https://opengameart.org/content/512-sound-effects-8-bit-style) <br>
+
+Converts .wav(wave) file into a data sequence where the samples are scaled in a bit range. Ex. an 8 bit range outputs a sequence within the rane 0-255. <br>
+
+This will output a data_sample.txt file containing the sounds scaled, and made for the struct format shown below:
+``` c
+struct Sound = {
+  uint32_t length;
+  uint8_t samples[];
+}
+```
