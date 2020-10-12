@@ -14,6 +14,7 @@ def wav2hex(filename:str, bit_range:int):
 	'''
 	temp,data = "",[]
 	filename = filename.split(".")[0] if "." in filename else filename
+	#Get hex data from file and split into 16 bit chunks
 	with open(f"{filename}.wav", 'rb') as f:
 	    for chunk in iter(lambda: f.read(32), b''):
 	    	hex_chunk = str(binascii.hexlify(chunk))[2:-1]
@@ -26,7 +27,8 @@ def wav2hex(filename:str, bit_range:int):
 	    			temp += word
 	    	temp = ""
 
-	## Remove metadata
+	## Remove header from data and convert it into something readable
+	## Sample rate is found in the header
 	header = data[:44]
 	data = data[44:]
 	sample_rate, BitsPerSample = metadata(header)
@@ -38,7 +40,6 @@ def wav2hex(filename:str, bit_range:int):
 			break
 		if (i+1) % 2 == 0:
 			data_temp.append(BitArray(hex = byte[::1]).int/((2**(BitsPerSample-1))-1))
-
 	data = data_temp
 
 	if "sample_data.txt" in os.listdir():
@@ -46,13 +47,11 @@ def wav2hex(filename:str, bit_range:int):
 		mode = "a" if "a" in mode else "w+"
 	f = open("sample_data.txt",mode)
 
-	test = []
-	data_string = f"\nstruct {filename} = {{{len(data_temp)}, {sample_rate[0]},{{"
+	## Output sound sequence in the form of a c struct
+	data_string = f"\nSound {filename} = {{{len(data_temp)}, {sample_rate[0]},{{"
 	for sample in data_temp:
-		test.append(int(sample*(2**(bit_range-1)-1)+(2**(bit_range-1))))
 		data_string += str(int(sample*(2**(bit_range-1)-1)+(2**(bit_range-1)))) + ","
 
-	print(max(test))
 	data_string = data_string[:-1] + "}};"
 	f.write(data_string)
 	f.close()
